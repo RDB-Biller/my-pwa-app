@@ -1,0 +1,261 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TMS Billing System</title>
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+(function(){
+    emailjs.init("YOUR_PUBLIC_KEY");
+})();
+</script>
+
+<style>
+body {font-family: Arial;background:#f5f7fb;margin:0;padding:20px;}
+.container {max-width:1200px;margin:auto;background:white;padding:20px;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,0.08);}
+h2 {text-align:center;color:#1e3a8a;}
+.card {background:#f8fafc;padding:12px;border-radius:10px;margin-bottom:12px;}
+.row {display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+input, select {padding:10px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:140px;}
+button {padding:10px;border:none;cursor:pointer;border-radius:6px;}
+.primary { background:#2563eb; color:white; }
+.success { background:#16a34a; color:white; }
+.warning { background:#f59e0b; color:white; }
+.output {background:#0f172a;color:#22c55e;padding:12px;border-radius:8px;min-height:140px;white-space:pre-wrap;}
+.tabbar {display:flex;gap:8px;flex-wrap:wrap;}
+.tabbar button {background:#e2e8f0;flex:1;}
+.tabbar button:hover {background:#cbd5e1;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>TMS Billing System</h2>
+
+<!-- PROVIDER -->
+<div class="card">
+<div class="row">
+<select id="providerSelect">
+<option value="Euracare Hospital">Euracare Hospital</option>
+<option value="Nyaho Medical Centre">Nyaho Medical Centre</option>
+</select>
+<input id="customProvider" placeholder="Other Provider">
+<button class="primary" onclick="setProvider()">Add Provider</button>
+</div>
+</div>
+
+<!-- PATIENT -->
+<div class="card">
+<div class="row">
+<input id="patient" placeholder="Patient Name">
+<input id="insurance" placeholder="Insurance Number">
+<input id="phone" placeholder="Phone Number">
+</div>
+</div>
+
+<!-- ITEMS -->
+<div class="card">
+<div class="row">
+<select id="itemSelect">
+<option value="">Select Item</option>
+<option value="Coartem-200">Coartem - GHS 200</option>
+<option value="FBC-120">FBC - GHS 120</option>
+<option value="GP Consultation-100">GP Consultation - GHS 100</option>
+</select>
+<input id="manualCost" placeholder="Override Cost">
+<button class="primary" onclick="addItem()">Add Item</button>
+</div>
+</div>
+
+<!-- BILL -->
+<div class="card">
+<pre class="output" id="billOutput">Live bill will appear here...</pre>
+</div>
+
+<!-- ✅ UPLOAD -->
+<div class="card">
+<h3>Upload Supporting Documents</h3>
+<input type="file" id="fileUpload" multiple accept=".csv,.xlsx,.pdf">
+<button onclick="uploadFile()">Upload Files</button>
+<ul id="fileList"></ul>
+</div>
+
+<!-- ROUTING -->
+<div class="card">
+<h3>Expedited / Claim Routing</h3>
+<div class="tabbar">
+<button onclick="route('Acacia')">Acacia</button>
+<button onclick="route('GTMF')">GTMF</button>
+<button onclick="route('International')">International</button>
+<button onclick="route('Corporate')">Corporate Claim</button>
+<button onclick="route('Regular')">Regular</button>
+</div>
+</div>
+
+<!-- PAYMENT -->
+<div class="card">
+<h3>Payment Options</h3>
+<div class="row">
+<button class="success" onclick="pay('mtn')">MTN Mobile Money</button>
+<button onclick="pay('other')">Other Payment</button>
+</div>
+</div>
+
+<!-- EMAIL SETTINGS -->
+<div class="card">
+<input id="email" placeholder="Optional Email">
+<select id="sendMode">
+<option value="email">Email Only</option>
+<option value="whatsapp">WhatsApp Only</option>
+<option value="both">Email + WhatsApp</option>
+</select>
+</div>
+
+</div>
+
+<script>
+
+let items = [];
+let finalBill = "";
+let provider = "Euracare Hospital";
+let uploadedFiles = [];
+
+function uploadFile(){
+    let files = document.getElementById("fileUpload").files;
+    for(let file of files){
+        let reader = new FileReader();
+        reader.onload = function(e){
+            uploadedFiles.push({
+                name: file.name,
+                data: e.target.result.split(",")[1]
+            });
+            let li = document.createElement("li");
+            li.innerText = file.name;
+            document.getElementById("fileList").appendChild(li);
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function setProvider(){
+    let custom = document.getElementById("customProvider").value;
+    provider = custom || document.getElementById("providerSelect").value;
+}
+
+/* ✅ FIXED OVERRIDE LOGIC */
+function addItem(){
+    let val = document.getElementById("itemSelect").value;
+    if(!val) return;
+
+    let parts = val.split("-");
+    let override = document.getElementById("manualCost").value;
+
+    let cost = override ? parseFloat(override) : parseFloat(parts[1]);
+
+    items.push({
+        name: parts[0],
+        cost: cost
+    });
+
+    document.getElementById("manualCost").value = "";
+    updateBill();
+}
+
+function updateBill(){
+    let total = 0;
+    let text = "ITEMIZED BILL\n\nProvider: " + provider + "\n\n";
+    items.forEach(i=>{
+        text += `${i.name} - GHS ${i.cost}\n`;
+        total += i.cost;
+    });
+    text += "\nTOTAL: GHS " + total.toFixed(2);
+    document.getElementById("billOutput").innerText = text;
+    finalBill = text;
+}
+
+function pay(type){
+    alert(type === "mtn" ? "MTN Mobile Money Selected" : "Other Payment Selected");
+}
+
+/* ✅ FIXED EMAIL SWITCHING */
+function route(type){
+
+    if(!finalBill){
+        alert("Generate bill first");
+        return;
+    }
+
+    let mode = document.getElementById("sendMode").value;
+    let email = document.getElementById("email").value || "hnnspprt@gmail.com";
+
+    let summary =
+`TMS EXPEDITED CLAIM REPORT
+==========================
+
+Provider: ${provider}
+Patient: ${document.getElementById("patient").value}
+Insurance: ${document.getElementById("insurance").value}
+Phone: ${document.getElementById("phone").value}
+
+Routing Type: ${type}
+
+${finalBill}
+`;
+
+    let hasAttachments = uploadedFiles.length > 0;
+
+    if(mode === "email" || mode === "both"){
+
+        if(hasAttachments){
+
+            emailjs.send("YOUR_SERVICE_ID","YOUR_TEMPLATE_ID",{
+                to_email: email,
+                subject: "TMS Claim - " + type,
+                message: summary,
+                attachments: uploadedFiles
+            })
+            .then(()=>alert("Email sent with attachments"))
+            .catch(()=>alert("Email failed"));
+
+        } else {
+
+            let form = document.createElement("form");
+            form.method = "POST";
+            form.action = "https://formsubmit.co/" + email;
+            form.target = "_blank";
+
+            let input1 = document.createElement("input");
+            input1.type = "hidden";
+            input1.name = "subject";
+            input1.value = "TMS Claim - " + type;
+
+            let input2 = document.createElement("input");
+            input2.type = "hidden";
+            input2.name = "message";
+            input2.value = summary;
+
+            form.appendChild(input1);
+            form.appendChild(input2);
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+    }
+
+    if(mode === "whatsapp" || mode === "both"){
+        let waPhone = "233593845652";
+        window.open("https://wa.me/" + waPhone + "?text=" + encodeURIComponent(summary), "_blank");
+    }
+
+    alert("Submission sent");
+}
+
+</script>
+
+</body>
+</html>

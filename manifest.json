@@ -1,0 +1,23 @@
+{
+  "background_color": "#0f10ce",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "HNN Biller",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "biller",
+  "start_url": "/https://rdb-biller.github.io/my-pwa-app/",
+  "theme_color": "#ffffff",
+  "id": "hnnbill26",
+  "categories": [
+    "finance"
+  ],
+  "lang": "en",
+  "display_override": [
+    "browser",
+    "fullscreen",
+    "minimal-ui",
+    "standalone",
+    "window-controls-overlay"
+  ]
+}

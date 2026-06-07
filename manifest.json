@@ -8,6 +8,14 @@
   "short_name": "biller",
   "start_url": "/https://rdb-biller.github.io/my-pwa-app/",
   "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "HNN BILLER LOGO 1 JPEG.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
   "id": "hnnbill26",
   "categories": [
     "finance"
@@ -20,4 +28,5 @@
     "standalone",
     "window-controls-overlay"
   ]
-}
+  
+  }
